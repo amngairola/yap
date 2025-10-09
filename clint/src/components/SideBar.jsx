@@ -41,6 +41,7 @@ const SideBar = ({ onUserSelect }) => {
           md:placeholder:text-gray-500
         "
             value=""
+            onChange={() => {}}
           />
         </div>
       </div>
