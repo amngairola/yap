@@ -53,10 +53,17 @@ const App = () => {
             path="/login"
             element={
               // 4. If the user is already authenticated, redirect them away from the login page.
-              isAuthenticated ? <Navigate to="/" /> : <LoginPage />
+              isAuthenticated ? (
+                <Navigate to="/" />
+              ) : (
+                <LoginPage setIsAuthenticated={setIsAuthenticated} />
+              )
             }
           />
-          <Route path="/signup" element={<SignupPage />} />
+          <Route
+            path="/signup"
+            element={<SignupPage setIsAuthenticated={setIsAuthenticated} />}
+          />
           <Route path="/profile" element={<Profile />} />
         </Routes>
       </div>

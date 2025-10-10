@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; // Use Link for navigation
 import TermsPopup from "../components/TermsPopup";
 
-const SignupPage = () => {
+const SignupPage = ({ setIsAuthenticated }) => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
@@ -32,6 +32,7 @@ const SignupPage = () => {
     setFullName("");
     setConfirmPassword("");
     setPassword("");
+    setIsAuthenticated(true);
     navigate("/");
   };
 
