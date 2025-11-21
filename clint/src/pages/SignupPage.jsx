@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; // Use Link for navigation
 import TermsPopup from "../components/TermsPopup";
+import { AuthContext } from "../../context/AuthContext";
+import toast from "react-hot-toast";
 
-const SignupPage = ({ setIsAuthenticated }) => {
+const SignupPage = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
@@ -12,13 +14,16 @@ const SignupPage = ({ setIsAuthenticated }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const navigate = useNavigate();
 
+  const { signup } = useContext(AuthContext);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      toast("Passwords do not match!");
       return;
     }
     // Your signup logic here
+
     const user = {
       fullName,
       bio,
@@ -26,14 +31,13 @@ const SignupPage = ({ setIsAuthenticated }) => {
       password,
       agreedToTerms,
     };
-    console.log("Signing up with:", user);
+    // add loading here
+    signup({ fullName, email, password, bio, agreedToTerms });
 
     setEmail("");
     setFullName("");
     setConfirmPassword("");
     setPassword("");
-    setIsAuthenticated(true);
-    navigate("/");
   };
 
   const handleConditionClick = (e) => {

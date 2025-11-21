@@ -1,11 +1,40 @@
-import React, { useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import assets, { userDummyData } from "./../assets/assets";
+import assets from "./../assets/assets";
 import UserListItem from "./UserListItem";
+import { AuthContext } from "../../context/AuthContext";
 
-const SideBar = ({ onUserSelect }) => {
+import { ChatContext } from "../../context/ChatContext";
+
+const SideBar = () => {
+  const { logout, authUser, onlineUsers } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isMenuOpen, setMenuOpen] = useState(false);
+  const [input, setInput] = useState("");
+
+  const {
+    getUsers,
+    users,
+    selectedUser,
+    setSelectedUser,
+    unseenMsg,
+    setUnseenMsg,
+  } = useContext(ChatContext);
+
+  const filterdUser = input
+    ? users.filter((user) =>
+        user.fullName.toLowerCase().includes(input.toLowerCase())
+      )
+    : users;
+
+  //logout methid
+  const handleLogout = () => {
+    logout();
+  };
+
+  useEffect(() => {
+    getUsers();
+  }, [onlineUsers]);
 
   return (
     // Main container background changed to be semi-transparent
@@ -40,8 +69,10 @@ const SideBar = ({ onUserSelect }) => {
           focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500
           md:placeholder:text-gray-500
         "
-            value=""
-            onChange={() => {}}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+            }}
           />
         </div>
       </div>
@@ -52,14 +83,16 @@ const SideBar = ({ onUserSelect }) => {
           Connected
         </p>
 
-        {userDummyData.map((user) => (
+        {filterdUser.map((user) => (
           <UserListItem
             key={user._id}
             id={user._id}
             name={user.fullName}
             avatar={user?.profilePic || assets.avatar_icon}
             // This now calls the function passed down from Home.jsx
-            onClick={() => onUserSelect(user)}
+            onClick={() => setSelectedUser(user)}
+            onlineUsers={onlineUsers}
+            unseenMsg={unseenMsg}
           />
         ))}
       </div>
@@ -72,12 +105,15 @@ const SideBar = ({ onUserSelect }) => {
           className="flex cursor-pointer items-center justify-center rounded-lg p-2 transition-colors duration-200 hover:bg-white/10 md:justify-start"
         >
           <img
-            src="https://placehold.co/100x100/4F46E5/FFFFFF?text=Me"
+            src={authUser.profilePic}
             alt="My Profile"
             className="h-10 w-10 rounded-full"
           />
           <div className="hidden md:ml-3 md:flex md:flex-col">
-            <span className="text-sm font-semibold">My Profile</span>
+            <span className="text-sm font-semibold">
+              {authUser.fullName}
+              {`  `} Profile's
+            </span>
             <span className="text-xs text-gray-400">Settings</span>
           </div>
           <img
@@ -111,7 +147,7 @@ const SideBar = ({ onUserSelect }) => {
               Edit Profile
             </div>
             <div className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/20 hover:text-red-300">
-              Logout
+              <button onClick={handleLogout}>Logout</button>
             </div>
           </div>
         </div>

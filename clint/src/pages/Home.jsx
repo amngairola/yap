@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import SideBar from "../components/SideBar";
 import ChatContainer from "../components/ChatContainer";
 import RightSidebar from "../components/RightSidebar";
+import { ChatContext } from "../../context/ChatContext";
 
 const Home = () => {
-  const [selectedUser, setSelectedUser] = useState(null);
-
-  const handleUserSelect = (user) => {
-    setSelectedUser(user);
-  };
+  const { selectedUser, setSelectedUser } = useContext(ChatContext);
 
   const handleGoBack = () => {
     setSelectedUser(null);
@@ -28,7 +25,7 @@ const Home = () => {
                 ${selectedUser ? "-translate-x-full" : "translate-x-0"}
               `}
           >
-            <SideBar onUserSelect={handleUserSelect} />
+            <SideBar />
           </div>
 
           {/* --- Column 2: Chat Container --- */}
@@ -40,17 +37,14 @@ const Home = () => {
                 ${selectedUser ? "translate-x-0" : "translate-x-full"}
               `}
           >
-            <ChatContainer
-              selectedUser={selectedUser}
-              onGoBack={handleGoBack}
-            />
+            <ChatContainer onGoBack={handleGoBack} />
           </div>
 
           {/* --- Column 3: Right Sidebar (Desktop Only) --- */}
           {/* This only appears if a user is selected AND the screen is desktop-sized */}
           {selectedUser && (
             <div className="hidden w-72 flex-none border-l border-white/20 md:block">
-              <RightSidebar selectedUser={selectedUser} />
+              <RightSidebar />
             </div>
           )}
         </div>

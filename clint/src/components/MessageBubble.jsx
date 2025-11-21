@@ -1,7 +1,8 @@
 import React from "react";
-import { formatMsgTime } from "../lib/Utils";
+// Fix: Importing from the lowercase 'utils' file we just created
+import { formatMsgTime } from "../lib/utils";
 
-// Seen Icon Component (no changes needed)
+// Seen Icon Component
 const SeenTick = ({ seen }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -21,12 +22,11 @@ const SeenTick = ({ seen }) => (
 );
 
 const MessageBubble = ({ text, image, time, isOwnMessage, seen }) => {
-  // Determine if the message is image-only for special styling
   const isImageOnly = image && !text;
 
   return (
     <div
-      className={`flex w-full ${
+      className={`flex w-full mb-4 ${
         isOwnMessage ? "justify-end" : "justify-start"
       }`}
     >
@@ -42,12 +42,10 @@ const MessageBubble = ({ text, image, time, isOwnMessage, seen }) => {
           }
         `}
       >
-        {/* Render the image if it exists */}
         {image && (
           <img
             src={image}
             alt="Sent media"
-            // If it's image-only, the image gets rounded corners to match the bubble
             className={`max-w-full h-auto ${
               isImageOnly ? "rounded-2xl" : "rounded-lg mb-1.5"
             }`}
@@ -66,7 +64,7 @@ const MessageBubble = ({ text, image, time, isOwnMessage, seen }) => {
             }
           `}
         >
-          <span className="text-xs">{formatMsgTime(time)}</span>
+          <span className="text-[10px] opacity-70">{formatMsgTime(time)}</span>
           {isOwnMessage && <SeenTick seen={seen} />}
         </div>
       </div>

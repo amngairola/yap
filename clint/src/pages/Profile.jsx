@@ -1,8 +1,20 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import assets from "../assets/assets"; // Make sure path is correct
+import assets from "../assets/assets";
+import { AuthContext } from "../../context/AuthContext";
+import toast from "react-hot-toast";
+import LoadingOverlay from "./LoadingOverlay"; // Ensure path is correct
 
-// A reusable input component for the profile form to keep the main component clean
+// --- Utility: Convert File to Base64 (Moved outside to prevent re-creation) ---
+const toBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+
+// --- Component: Reusable Input Field ---
 const ProfileInput = ({
   id,
   label,
@@ -11,88 +23,53 @@ const ProfileInput = ({
   isEditing,
   as = "input",
 }) => (
-  <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-400">
+  <div className="flex flex-col gap-1">
+    <label
+      htmlFor={id}
+      className="text-xs font-medium uppercase tracking-wider text-gray-500"
+    >
       {label}
     </label>
     {isEditing ? (
-      // If in edit mode, render an actual input or textarea element
       React.createElement(as, {
-        id: id,
-        value: value,
-        onChange: onChange,
+        id,
+        name: id, // Add name for easier handling
+        value,
+        onChange,
         className:
-          "mt-1 w-full rounded-lg border-none bg-zinc-800/50 p-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500",
+          "w-full rounded-lg border border-white/10 bg-zinc-800/50 p-3 text-sm text-white placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all",
         ...(as === "textarea" && { rows: 3 }),
       })
     ) : (
-      // If in view mode, just display the text in a <p> tag
-      <p className="mt-1 p-3 text-white">{value}</p>
+      <p className="rounded-lg border border-transparent px-3 py-2 text-sm text-gray-200">
+        {value || <span className="italic text-gray-600">Not set</span>}
+      </p>
     )}
   </div>
 );
 
-const Profile = () => {
-  const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
-  const imageInputRef = useRef(null);
-
-  // --- State for user data (replace with your actual data fetching logic) ---
-  const [formData, setFormData] = useState({
-    fullName: "User Name",
-    email: "jane.doe@example.com",
-    bio: "Lover of coffee, code, and cats. Building cool things one line at a time.",
-    profilePic: "https://placehold.co/200x200/4F46E5/FFFFFF?text=JD",
-  });
-
-  // State to hold the temporary URL for the new profile picture preview
-  const [imagePreview, setImagePreview] = useState(null);
-
-  // Handles changes for text inputs
-  const handleInputChange = (e) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
-  };
-
-  // Handles new image selection and creates a preview URL
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
-  // Logic for saving changes to the backend
-  const handleSaveChanges = () => {
-    // Your API call to save data would go here
-    console.log("Saving data:", formData);
-    if (imagePreview) {
-      // Here you would typically upload the file from imageInputRef.current.files[0]
-      // to your backend/storage service and get a new URL.
-      console.log("New image to upload:", imageInputRef.current.files[0]);
-    }
-    setIsEditing(false);
-    setImagePreview(null); // Clear the temporary preview
-  };
-
-  // Logic to cancel editing and revert changes
-  const handleCancel = () => {
-    // In a real app, you would refetch the original data here to discard changes.
-    // For now, we just exit edit mode and clear the preview.
-    setIsEditing(false);
-    setImagePreview(null);
-  };
+// --- Component: Avatar Upload Section ---
+const AvatarUpload = ({ currentImage, isEditing, onImageChange }) => {
+  const fileInputRef = useRef(null);
 
   return (
-    // Main container to center the content
-    <div className="flex min-h-screen w-full items-center justify-center p-4">
-      {/* The main "glass" card */}
-      <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-black/30 shadow-2xl backdrop-blur-lg">
-        {/* --- Page Header --- */}
-        <div className="flex items-center justify-between border-b border-white/10 p-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+    <div className="relative mx-auto mb-8 h-32 w-32 group">
+      <div
+        className={`relative h-full w-full overflow-hidden rounded-full border-4 ${
+          isEditing ? "border-indigo-500" : "border-white/10"
+        } shadow-xl`}
+      >
+        <img
+          src={currentImage || assets.avatar_icon}
+          alt="Profile"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+
+        {/* Edit Overlay */}
+        {isEditing && (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/50 opacity-0 backdrop-blur-sm transition-all duration-200 hover:opacity-100"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -104,110 +81,224 @@ const Profile = () => {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              className="text-white"
             >
-              <polyline points="15 18 9 12 15 6"></polyline>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
-          </button>
-          <h1 className="text-xl font-bold text-white">Profile</h1>
-          <div className="w-10"></div> {/* Spacer to keep the title centered */}
-        </div>
-
-        <div className="p-6">
-          {/* --- Profile Picture Section --- */}
-          <div className="relative mx-auto mb-6 h-32 w-32">
-            <img
-              src={imagePreview || formData.profilePic || assets.avatar_icon}
-              alt="Profile"
-              className="h-full w-full rounded-full border-2 border-indigo-500 object-cover"
-            />
-            {isEditing && (
-              <>
-                <input
-                  type="file"
-                  ref={imageInputRef}
-                  hidden
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-                <div
-                  onClick={() => imageInputRef.current.click()}
-                  className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity hover:opacity-100"
-                >
-                  <span className="text-sm font-semibold text-white">
-                    Change
-                  </span>
-                </div>
-              </>
-            )}
           </div>
+        )}
+      </div>
 
-          {/* --- User Details Form --- */}
-          <div className="space-y-4">
-            <ProfileInput
-              id="fullName"
-              label="Full Name"
-              value={formData.fullName}
-              onChange={handleInputChange}
-              isEditing={isEditing}
-            />
-            <ProfileInput
-              id="email"
-              label="Email Address"
-              value={formData.email}
-              onChange={handleInputChange}
-              isEditing={isEditing}
-            />
-            <ProfileInput
-              id="bio"
-              label="Your Bio"
-              value={formData.bio}
-              onChange={handleInputChange}
-              isEditing={isEditing}
-              as="textarea"
-            />
-          </div>
+      <input
+        type="file"
+        ref={fileInputRef}
+        hidden
+        accept="image/*"
+        onChange={onImageChange}
+      />
+    </div>
+  );
+};
 
-          {/* --- Action Buttons (conditionally rendered) --- */}
-          <div className="mt-8 flex items-center justify-end space-x-4 border-t border-white/10 pt-6">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleCancel}
-                  className="rounded-lg bg-white/10 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveChanges}
-                  className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
-                >
-                  Save Changes
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+// --- Main Component ---
+const Profile = () => {
+  const { authUser, updateProfile } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  // UI States
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form Data State
+  const [formData, setFormData] = useState({
+    fullName: authUser?.fullName || "",
+    bio: authUser?.bio || "",
+    profilePic: authUser?.profilePic || null,
+  });
+
+  // Preview State
+  const [imagePreview, setImagePreview] = useState(null);
+
+  // 1. OPTIMIZATION: Cleanup Object URL to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imagePreview.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
+  const handleInputChange = (e) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Size validation (5MB)
+    const sizeInMB = file.size / (1024 * 1024);
+    if (sizeInMB > 5) {
+      toast.error("File is too large! Please select an image under 5MB.");
+      return;
+    }
+
+    // Update state and create preview
+    setFormData((prev) => ({ ...prev, profilePic: file }));
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    try {
+      const updateBody = {
+        bio: formData.bio,
+        fullName: formData.fullName,
+      };
+
+      // Only convert image if a new file was selected (it will be a File object)
+      if (formData.profilePic instanceof File) {
+        updateBody.profilePic = await toBase64(formData.profilePic);
+      }
+
+      await updateProfile(updateBody);
+      // Note: Toast is usually handled in AuthContext, but redundant calls don't hurt
+      setIsEditing(false);
+      // Optional: navigate("/") if you want to leave the page
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      toast.error("Failed to save changes.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    // Reset form data to original user data
+    setFormData({
+      fullName: authUser.fullName,
+      bio: authUser.bio,
+      profilePic: authUser.profilePic,
+    });
+    setIsEditing(false);
+    setImagePreview(null);
+  };
+
+  // --- Render ---
+  if (isSaving) {
+    return <LoadingOverlay />;
+  }
+  return (
+    <>
+      <div className="flex min-h-screen w-full items-center justify-center p-4 bg-black/20">
+        <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-2xl backdrop-blur-md">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-white/10 p-4 bg-white/5">
+            <button
+              onClick={() => navigate(-1)}
+              className="rounded-full p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                Edit Profile
-              </button>
-            )}
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+            </button>
+            <h1 className="text-lg font-bold text-white tracking-wide">
+              Edit Profile
+            </h1>
+            <div className="w-9"></div> {/* Spacer */}
           </div>
 
-          {/* --- Danger Zone Section --- */}
-          <div className="mt-8 border-t border-red-500/30 pt-4 text-sm">
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-gray-400">
-                Delete your account and all associated data.
-              </p>
-              <button className="rounded-lg border border-red-500/50 px-4 py-2 font-semibold text-red-400 transition-colors hover:bg-red-500/20">
-                Delete Account
-              </button>
+          <div className="p-8">
+            <AvatarUpload
+              currentImage={imagePreview || formData.profilePic}
+              isEditing={isEditing}
+              onImageChange={handleImageChange}
+            />
+
+            <div className="space-y-6">
+              <ProfileInput
+                id="fullName"
+                label="Full Name"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                isEditing={isEditing}
+              />
+
+              <ProfileInput
+                id="email"
+                label="Email Address"
+                value={authUser?.email}
+                isEditing={false} // Email usually shouldn't be editable here
+              />
+
+              <ProfileInput
+                id="bio"
+                label="About Me"
+                value={formData.bio}
+                onChange={handleInputChange}
+                isEditing={isEditing}
+                as="textarea"
+              />
+            </div>
+
+            {/* Actions Footer */}
+            <div className="mt-10 flex items-center justify-end gap-3 pt-6 border-t border-white/10">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={handleCancel}
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-gray-300 hover:bg-white/10 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveChanges}
+                    className="rounded-lg bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105"
+                  >
+                    Save Changes
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 rounded-lg bg-white/10 px-6 py-2 text-sm font-medium text-white hover:bg-white/20 transition-all"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Edit Profile
+                </button>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

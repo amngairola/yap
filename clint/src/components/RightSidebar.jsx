@@ -1,19 +1,31 @@
-import React from "react";
+import React, { useContext, useMemo } from "react";
 import assets, { imagesDummyData } from "../assets/assets"; // Make sure path is correct
+import { ChatContext } from "../../context/ChatContext";
+import { AuthContext } from "../../context/AuthContext";
 
-const RightSidebar = ({ selectedUser, onClose }) => {
+const RightSidebar = ({ onClose }) => {
   // Although the parent component handles this, it's safe to have a fallback.
+
+  const { messages, selectedUser } = useContext(ChatContext);
+  const { logout, onlineUsers } = useContext(AuthContext);
+
+  const isOnline = onlineUsers.includes(String(selectedUser._id));
+
+  const sharedMedia = useMemo(() => {
+    if (!messages) return [];
+
+    return messages.filter((msg) => msg.image).reverse();
+  }, [messages]);
+
   if (!selectedUser) {
     return null;
   }
 
   return (
-    // Main container with glass effect and vertical layout
-    <div className="flex h-full w-full flex-col bg-black/20 p-4 text-white">
+    <div className="flex h-full w-full flex-col bg-black/20 border-l border-white/10 text-white">
       {/* --- Header --- */}
-      <div className="flex flex-shrink-0 items-center justify-between border-b border-white/10 pb-3">
-        <h3 className="text-lg font-semibold">Profile</h3>
-        {/* Close button for mobile, passed from Home.jsx */}
+      <div className="flex flex-shrink-0 items-center justify-between p-4 border-b border-white/10 bg-black/10 backdrop-blur-sm">
+        <h3 className="text-lg font-semibold">Contact Info</h3>
         <button
           onClick={onClose}
           className="rounded-full p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white md:hidden"
@@ -35,106 +47,70 @@ const RightSidebar = ({ selectedUser, onClose }) => {
         </button>
       </div>
 
-      {/* --- User Info Section --- */}
-      <div className="flex flex-col items-center space-y-2 py-6 text-center">
-        <img
-          src={selectedUser?.profilePic || assets.avatar_icon}
-          alt={selectedUser.fullName}
-          className="h-24 w-24 rounded-full border-2 border-indigo-500 object-cover"
-        />
-        <div>
+      {/* --- Scrollable Content --- */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+        {/* User Info Section */}
+        <div className="flex flex-col items-center py-6 text-center">
+          <div className="relative mb-4">
+            <img
+              src={selectedUser?.profilePic || assets.avatar_icon}
+              alt={selectedUser.fullName}
+              className="h-24 w-24 rounded-full border-4 border-black/30 object-cover shadow-xl"
+            />
+            {isOnline && (
+              <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-green-500 ring-4 ring-black/30"></div>
+            )}
+          </div>
+
           <h2 className="text-xl font-bold">{selectedUser.fullName}</h2>
-          <p className="text-sm text-gray-400">
-            @{selectedUser.email.split("@")[0]}
-          </p>
+          <p className="text-sm text-gray-400 mb-4">{selectedUser.email}</p>
+
+          <div className="w-full rounded-xl bg-white/5 p-3 text-sm text-gray-300 backdrop-blur-sm">
+            <p>{selectedUser.bio || "No bio available."}</p>
+          </div>
         </div>
-        <p className="max-w-xs pt-2 text-sm text-gray-300">
-          {selectedUser.bio || "This user hasn't set a bio yet."}
-        </p>
-      </div>
 
-      {/* ---adtional functionality && Action Buttons --- */}
-      <div className="flex items-center justify-center space-x-3 border-t border-white/10 pt-4">
-        <button className="flex-1 rounded-lg bg-red-600/20 px-4 py-2 text-sm font-semibold text-red-400 transition-colors hover:bg-red-600/30">
-          remove user
-        </button>
-      </div>
+        {/* Shared Media Section */}
+        <div className="mt-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+              Shared Media ({sharedMedia.length})
+            </h4>
+          </div>
 
-      {/* --- Shared Media Section --- */}
-      <div className="mt-6 flex-grow overflow-y-auto">
-        {/* Header with File Count and "See All" button */}
-        <div className="mb-2 flex items-center justify-between">
-          <h4 className="text-xs font-semibold uppercase text-gray-400">
-            Shared Media
-          </h4>
-          {imagesDummyData.length > 0 && (
-            <button className="text-xs font-semibold text-indigo-400 hover:underline">
-              See All
-            </button>
+          {sharedMedia.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2">
+              {sharedMedia.map((message) => (
+                <div
+                  key={message._id}
+                  onClick={() => window.open(message.image, "_blank")}
+                  className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-gray-800"
+                >
+                  <img
+                    src={message.image}
+                    alt="Shared"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/40" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/10 py-8 text-center">
+              <p className="text-sm text-gray-500">No media shared yet.</p>
+            </div>
           )}
         </div>
-
-        {/* Conditionally render the grid or an "empty state" message */}
-        {imagesDummyData.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2 overflow-y-auto">
-            {imagesDummyData.map((url, index) => (
-              // Each grid item is now a self-contained interactive element
-              <div
-                key={index}
-                onClick={() => window.open(url, "_blank")}
-                className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg"
-              >
-                {/* The Image Itself */}
-                <img
-                  src={url}
-                  alt="Shared media"
-                  className="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-110"
-                />
-                {/* A dark overlay that appears on hover */}
-                <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/50"></div>
-                {/* An icon that appears on hover to indicate it can be opened */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-                  <svg
-                    className="h-6 w-6 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                    <polyline points="15 3 21 3 21 9"></polyline>
-                    <line x1="10" y1="14" x2="21" y2="3"></line>
-                  </svg>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          // "Empty State" shown when there are no images
-          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/10 py-8 text-center">
-            <p className="text-sm text-gray-500">
-              No media has been shared yet.
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* --- Logout Button (Footer) --- */}
-      {/* 'mt-auto' pushes this div to the very bottom of the flex container */}
-      <div className="mt-auto flex-shrink-0 border-t border-white/10 pt-4">
+      {/* --- Footer Actions --- */}
+      <div className="p-4 border-t border-white/10 bg-black/10 backdrop-blur-sm">
         <button
-          // Add your logout function to onClick
-          // onClick={() => handleLogout()}
-          className="flex w-full items-center justify-center space-x-2 rounded-lg p-3 text-sm font-semibold text-red-400 transition-colors duration-200 hover:bg-red-500/20"
+          onClick={logout}
+          className="flex w-full items-center justify-center space-x-2 rounded-lg bg-red-500/10 p-3 text-sm font-semibold text-red-400 transition-all duration-200 hover:bg-red-500/20 hover:text-red-300"
         >
-          {/* Logout Icon */}
           <svg
-            xmlns="http://www.w.org/2000/svg"
+            xmlns="http://www.w3.org/2000/svg"
             width="20"
             height="20"
             viewBox="0 0 24 24"

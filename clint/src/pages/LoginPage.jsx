@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
 
 const GoogleIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 48 48">
@@ -22,19 +23,19 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const LoginPage = ({ setIsAuthenticated }) => {
+const LoginPage = () => {
+  const { login } = useContext(AuthContext);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    console.log("Logging in with:", { email, password });
+    login({ email, password });
 
     setEmail("");
     setPassword("");
-    setIsAuthenticated(true);
     navigate("/");
   };
 
@@ -59,9 +60,11 @@ const LoginPage = ({ setIsAuthenticated }) => {
             <input
               type="email"
               id="email"
+              name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              autoComplete="username"
               className="w-full rounded-lg border-none bg-zinc-800/50 p-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
               required
             />
@@ -78,6 +81,8 @@ const LoginPage = ({ setIsAuthenticated }) => {
               type="password"
               id="password"
               value={password}
+              name="password"
+              autoComplete="current-password"
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full rounded-lg border-none bg-zinc-800/50 p-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
