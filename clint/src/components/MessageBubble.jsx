@@ -1,6 +1,6 @@
 import React from "react";
-// Fix: Importing from the lowercase 'utils' file we just created
-import { formatMsgTime } from "../lib/utils";
+
+import { formatMsgTime } from "../lib/Utils";
 
 // Seen Icon Component
 const SeenTick = ({ seen }) => (
